@@ -1,1 +1,23 @@
-# ODC-M_Validation
+# Obesity, Diabetes, and Cardiovascular Disease Microsimulation (ODC-M) Model
+## Project Overview
+The ODC-M model forecasts US trends in the prevalence of obesity, diabetes, and cardiovascular disease, as well as all-cause mortality, quality-adjusted life years, and health care costs. Results are stratified by race/ethnicity in order to highlight health disparities. 
+
+## Getting Started
+### Required R Packages
+The following packages are required to run the code. You can install packages in R by running `install.packages('package_name')`.
+* survey
+* svMisc
+* psych
+* gdata
+* dplyr
+* plyr
+* data.table
+* foreach
+* doParallel
+* abind
+
+### Model Settings
+The ODC-M_model.R script is the main script for the model. Under "0.5 Creating Working Directory," you can set your working directory. Under "0.7 Modeling Choices," you can specify a seed, the number of simulations/probabilistic samples (`n.sim`), the number of cycles (`n.cycle`), the number of individuals to sample (`n.sample`), and the intervention type. For forecasting trends without any intervention, use the "No_Policy" setting. The model can be adapted for predicting policy impacts.
+
+## Contact
+David Kim - dkim3@tuftsmedicalcenter.org
