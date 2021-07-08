@@ -17,7 +17,7 @@ The following packages are required to run the code. You can install packages in
 * abind
 
 ### Model Settings
-The ODC-M_model.R script is the main script for the model. Under "0.5 Creating Working Directory," you can set your working directory. Under "0.7 Modeling Choices," you can specify a seed, the number of simulations/probabilistic samples (`n.sim`), the number of cycles (`n.cycle`), the number of individuals to sample (`n.sample`), and the intervention type. For forecasting trends without any intervention, use the "No_Policy" setting. The model can be adapted for predicting policy impacts.
+The ODC-M_model.R script is the main script for the model. Under "0.5 Creating Working Directory," you can set your working directory. You can also specify a seed, the number of simulations/probabilistic samples (`n.sim`), the number of cycles (`n.cycle`), the number of individuals to sample (`n.sample`), and the intervention type. These can be set via command line arguments (in that order), or manually under "0.6 Manually set modeling choices or read command-line arguments." For forecasting trends without any intervention, use the "No_Policy" setting. The model can be adapted for predicting policy impacts.
 
 ## Contact
 David Kim - dkim3@tuftsmedicalcenter.org
