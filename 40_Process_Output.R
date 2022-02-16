@@ -6,15 +6,15 @@ setwd()
 library(abind)
 
 # Settings
-vars <- c("Obesity", "Diabetes", "CVD_history", "QALY", "Cost", "QALY_disc", "Cost_disc",
+vars <- c("Obesity", "Diabetes", "CVD_history", "QALY", "HCE", "QALY_disc", "cost_disc", 
           "All-cause mortality", "Incident Stroke", "Incident CHD")
 races <- c("all", "NHW", "NHB", "Hisp")
 # seeds = c("1234", "2345", "23456", "234567")
-seeds = c("1234")
-date = "2021-06-18"
-year1 = 2017
+seeds = c("513")
+date = "2022-02-16"
+year1 = 2001
 n.cycle = 15
-n.sim = 1000
+n.sim = 50
 output_path = "final_output.csv"
 
 # Initialize final output (means and 95% CIs for each variable, race, and cycle - long format)
