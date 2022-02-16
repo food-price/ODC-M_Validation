@@ -73,12 +73,14 @@ Multi_yr_Risk_to_annual_prob <- function(time, risk) {
 }
 
 # 0.5 Creating Working Directory 
-setwd()
-#setwd("/cluster/tufts/kimlab/lwang18/ODC-M_Validation")
+#setwd()
+setwd("/cluster/tufts/kimlab/lwang18/ODC-M_Validation")
+
 #setwd("C:\Users\lwang18\Documents\GitHub\ODC-M_Validation")
 
 # Source other scripts
-source("30 Main Model/1a - Diabetes_risk_prediction_FHS (categorical points).R")
+#source("30 Main Model/1a - Diabetes_risk_prediction_FHS (categorical points).R")
+source("30 Main Model/1aa -Diabetes_risk_prediction_ARIC.R")
 source("30 Main Model/1b - ASCVD_risk_calculator.R")
 source("30 Main Model/1c - FHS Subsequent_CVD_risk_calculator.R")
 source("30 Main Model/2a - HrQOL estimator for US general population.R")
@@ -91,7 +93,7 @@ if (length(args) == 0) {
   seed <- 1234
   n.sim <- 5 #Number of probablistic samplings
   n.cycle <- 10 #Number of Cycle Length: How long does the model run (i.e., analytic time horizon)
-  n.sample <- 100 #Number of individuals to be selected from the full sample; if full sample, enter "ALL"
+  n.sample <- 10000 #Number of individuals to be selected from the full sample; if full sample, enter "ALL"
   intervention <- "No_Policy" #SELECT between "Policy" or "No_Policy"
 } else {
   # expecting 4 arguments
@@ -104,7 +106,7 @@ if (length(args) == 0) {
   intervention <- args[4]
   # Assume entire sample
   n.sample = "ALL"
-
+  
   # check that modeling choices were set
   if (is.na(seed)) {
     stop("ERROR: missing seed", call. = FALSE)
@@ -135,7 +137,7 @@ NHANES<- fread("00 Input Data/NHANES0102_10_Imp_New.csv", stringsAsFactors = TRU
 variables <- c("seqn", "wtint2yr", "wtmec2yr", "sdmvpsu", "sdmvstra", 
                "Age", "Female", "Race", "CVD_history", "Diabetes",
                "Total_Chol","HDL", "SBP", "DBP", "HPT_Txt", "Smoking",
-               "DM_family", "BMI", "Glucose", "Trig",
+               "DM_family", "BMI", "Glucose", "Trig","WC","Height", 
                "ssb","added_sugar", "sodium", "kcal", "sfat")
 
 NHANES <- NHANES[variables]
@@ -152,6 +154,11 @@ if (n.sample == "ALL"){
   data_for_analysis <- NHANES_age25_79[random_sample,]
 }
 data_for_analysis <- data_for_analysis[order(data_for_analysis$Subject_ID), ]
+data_for_analysis$DM_parent <- data_for_analysis$DM_family
+data_for_analysis$Black<-ifelse(data_for_analysis$Race==2, 1, 0)
+data_for_analysis$Mexican<-ifelse(data_for_analysis$Race==3, 1, 0)
+
+
 
 # 1.5 Important other input data   
 
@@ -192,7 +199,7 @@ stroke_mortality_NHBM <- t(mapply(calc_nsims_rbeta, n.sim, stroke_mortality$NHBM
 stroke_mortality_NHBF <- t(mapply(calc_nsims_rbeta, n.sim, stroke_mortality$NHBF, stroke_mortality$NHBF_SE))
 stroke_mortality_HM <- t(mapply(calc_nsims_rbeta, n.sim, stroke_mortality$HM, stroke_mortality$HM_SE))
 stroke_mortality_HF <- t(mapply(calc_nsims_rbeta, n.sim, stroke_mortality$HF, stroke_mortality$HF_SE))
-  
+
 CHD_mortality <- fread("00 Input Data/IHD_Cause_Mortality (Annual probability).csv", stringsAsFactors = TRUE, data.table = FALSE)
 CHD_mortality_Male <- t(mapply(calc_nsims_rbeta, n.sim, CHD_mortality$Male, CHD_mortality$Male_SE))
 CHD_mortality_Female <- t(mapply(calc_nsims_rbeta, n.sim, CHD_mortality$Female, CHD_mortality$Female_SE))
@@ -265,7 +272,7 @@ data_for_analysis$DEMO[data_for_analysis$Female == 1 & data_for_analysis$Race ==
 
 data_for_analysis$Age_cycle <- NA
 
-data_for_analysis$DM_parent <- data_for_analysis$DM_family
+
 
 data_for_analysis$BMI_cat[data_for_analysis$BMI < 18.5] <- "Underweight"
 data_for_analysis$BMI_cat[data_for_analysis$BMI >= 18.5 & data_for_analysis$BMI < 25] <- "Normal"
@@ -278,8 +285,12 @@ data_for_analysis$Obesity[data_for_analysis$BMI < 30] <- 0
 data_for_analysis$Obesity[data_for_analysis$BMI >= 30] <- 1
 
 # 1.7 DM risk adjustment for non-whites
+#data_for_analysis$risk_adjustment.DM <- ifelse(data_for_analysis$DEMO %in% c("NHWM", "NHWF", "Female", "Male"), 1.0,
+#                                              ifelse(data_for_analysis$DEMO %in% c("NHBM", "NHBM"), 1.5, 2.4))
+
 data_for_analysis$risk_adjustment.DM <- ifelse(data_for_analysis$DEMO %in% c("NHWM", "NHWF", "Female", "Male"), 1.0,
-                                               ifelse(data_for_analysis$DEMO %in% c("NHBM", "NHBM"), 1.5, 2.4))
+                                               ifelse(data_for_analysis$DEMO %in% c("NHBM", "NHBM"), 1.0, 1.0))
+
 
 # 1.7 Creating dupilicate (counter-factual) observations to predict the effect under policy vs. no policy
 data_for_analysis$source <- intervention
@@ -358,7 +369,7 @@ for (g in 1:nrow(ssb_bmi_low)) {
 #############################################
 # 2 Describing the baseline characteristics #
 #############################################
-  #OMITTED - SEE THE PREVIOUS VERSION
+#OMITTED - SEE THE PREVIOUS VERSION
 
 #################################################################################################################################
 # 3 Estimating disease-specific risk, health-related quality of life (HrQOL), and healthcare expenditures (HCE) at the baseline #
@@ -368,8 +379,12 @@ p3_start <- proc.time()
 # 3.1 FHS 8-year Diabetes Risk Prediction (With BMI)
 variable_for_raw.input <- names(data_for_analysis)
 raw.input.data <- data_for_analysis
-data_for_analysis$DM_risk_8yr <- calc_DM_risk(raw.input.data)
-data_for_analysis$DM_prob <- Multi_yr_Risk_to_annual_prob(time=8, risk=data_for_analysis$DM_risk_8yr)
+#data_for_analysis$DM_risk_8yr <- calc_DM_risk(raw.input.data)
+#data_for_analysis$DM_prob <- Multi_yr_Risk_to_annual_prob(time=8, risk=data_for_analysis$DM_risk_8yr)
+
+data_for_analysis$DM_risk_9yr <- calc_DM_risk_ARIC3(raw.input.data)
+data_for_analysis$DM_prob <- Multi_yr_Risk_to_annual_prob(time=9, risk=data_for_analysis$DM_risk_9yr)
+
 
 # 3.2 ACC/AHA ASCVD 10-year Risk Prediction
 raw.input.data <- data_for_analysis
@@ -479,7 +494,7 @@ update_risk_factor <- function(sim_out_t, risk_factor, predictor, s) {
 run_sim <- function(s) {
   # Runs single simulation
   # Returns array with variables for each individual at each cycle
-  key_variables <- c("seqn", "Age", "Age_cycle", "DEMO", "Female", "Race", "Total_Chol","HDL", "SBP", "DBP", "BMI", "BMI_cat", "Obesity", "HPT_Txt", "Trig", "Glucose", 
+  key_variables <- c("seqn", "Age", "Age_cycle", "DEMO", "Female", "Race", "Total_Chol","HDL", "SBP", "DBP", "BMI", "BMI_cat", "Obesity", "HPT_Txt", "Trig", "Glucose",  "WC","Height", "Black",
                      "Smoking", "Diabetes", "CVD_history", "risk_adjustment.DM", "DM_parent", "ssb", "added_sugar", "sodium", "kcal" , "sfat", "DM_prob", "CVD_prob", "CVD_recurrent_prob", "HRQOL_scores", "HCE_predict")  
   
   all_variables <- c(key_variables, "state", "cost_disc", "effect_disc")
@@ -504,7 +519,7 @@ run_sim <- function(s) {
   
   for (t in 1:n.cycle) {
     #Non-time varying data inputs: carry it over from the baseline data
-    sim_out[,c("seqn", "Age", "Female", "Race","HPT_Txt","Smoking","DM_parent", "risk_adjustment.DM"),t+1] <- as.numeric(sim_out[,c("seqn", "Age", "Female", "Race","HPT_Txt","Smoking","DM_parent", "risk_adjustment.DM"),t]) 
+    sim_out[,c("seqn", "Age", "Female", "Race","HPT_Txt","Smoking","DM_parent", "risk_adjustment.DM","WC","Height", "Black"),t+1] <- as.numeric(sim_out[,c("seqn", "Age", "Female", "Race","HPT_Txt","Smoking","DM_parent", "risk_adjustment.DM","WC","Height", "Black"),t]) 
     sim_out[,"DEMO",t+1] <- sim_out[,"DEMO",t] 
     
     #Time-varying data inputs
@@ -630,8 +645,8 @@ run_sim <- function(s) {
     raw.input.data  <- cbind(as.numeric(sim_out[,"seqn",t]), as.numeric(sim_out[,"Age_cycle",t]), as.numeric(sim_out[,"Female",t]), as.numeric(sim_out[,"Race",t]),
                              as.numeric(sim_out[,"Glucose",t]), as.numeric(sim_out[,"BMI",t]), as.numeric(sim_out[,"Total_Chol",t]), 
                              as.numeric(sim_out[,"HDL",t]), as.numeric(sim_out[,"Trig",t]), as.numeric(sim_out[,"SBP",t]),as.numeric(sim_out[,"DBP",t]),
-                             as.numeric(sim_out[,"HPT_Txt",t]), as.numeric(sim_out[,"Smoking",t]), as.numeric(sim_out[,"Diabetes",t]),  as.numeric(sim_out[,"CVD_history",t]), as.numeric(sim_out[,"DM_parent",t]))
-    colnames(raw.input.data) <- c("seqn","Age","Female","Race","Glucose","BMI","Total_Chol","HDL","Trig","SBP","DBP","HPT_Txt","Smoking","Diabetes","CVD_history", "DM_parent" )          
+                             as.numeric(sim_out[,"HPT_Txt",t]), as.numeric(sim_out[,"Smoking",t]), as.numeric(sim_out[,"Diabetes",t]),  as.numeric(sim_out[,"CVD_history",t]),  as.numeric(sim_out[,"DM_parent",t]), as.numeric(sim_out[,"Black",t]), as.numeric(sim_out[,"WC",t]), as.numeric(sim_out[,"Height",t]))
+    colnames(raw.input.data) <- c("seqn","Age","Female","Race","Glucose","BMI","Total_Chol","HDL","Trig","SBP","DBP","HPT_Txt","Smoking","Diabetes","CVD_history", "DM_parent","Black", "WC","Height" )          
     raw.input.data <- as.data.frame(raw.input.data)
     
     if (t%/%2 > 0 & t%%2 == 0)  {
@@ -641,9 +656,9 @@ run_sim <- function(s) {
       sim_out[,"CVD_recurrent_prob",t+1] <- sim_out[,"CVD_recurrent_prob",t]
     }
     
-    if (t%/%8 > 0 & t%%8 == 0)  {
-      DM_risk_8yr <- calc_DM_risk(raw.input.data)
-      sim_out[,"DM_prob",t+1] <- Multi_yr_Risk_to_annual_prob(time=8, risk=DM_risk_8yr)
+    if (t%/%9 > 0 & t%%9 == 0)  {
+      DM_risk_9yr <- calc_DM_risk_ARIC3(raw.input.data)
+      sim_out[,"DM_prob",t+1] <- Multi_yr_Risk_to_annual_prob(time=9, risk=DM_risk_9yr)
     } else {
       sim_out[,"DM_prob",t+1] <- sim_out[,"DM_prob",t]
     }
@@ -862,8 +877,8 @@ run_sim <- function(s) {
     sim_out[,"cost_disc",t+1] <- as.numeric(sim_out[,"HCE_predict",t+1])/((1+beta_cost)^(t-1))
     
     # Filter only ages 40-79 for final analysis (set rest to NA)
-   # sim_out_filter[,,t+1] <- sim_out[,,t+1]
-   # sim_out_filter[as.numeric(sim_out[,"Age_cycle",t+1])<40 | as.numeric(sim_out[,"Age_cycle",t+1])>79,,t+1] = NA
+    # sim_out_filter[,,t+1] <- sim_out[,,t+1]
+    # sim_out_filter[as.numeric(sim_out[,"Age_cycle",t+1])<40 | as.numeric(sim_out[,"Age_cycle",t+1])>79,,t+1] = NA
   }
   # Subset output to include variables of interest
   out_variables <- c("Obesity", "Diabetes", "CVD_history", "HRQOL_scores", "HCE_predict", "state", "cost_disc", "effect_disc")
@@ -1009,3 +1024,4 @@ proc.time() - summ_start
 
 print("Total time:")
 proc.time() - ptm
+
