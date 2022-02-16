@@ -514,8 +514,8 @@ run_sim <- function(s) {
   sim_out[,"effect_disc",1] <- data_for_analysis$HRQOL_scores
   
   # Filter only ages 40-79 for final analysis (set rest to NA)
-  sim_out_filter[,,1] <- sim_out[,,1]
-  sim_out_filter[as.numeric(sim_out[,"Age_cycle",1])<40 | as.numeric(sim_out[,"Age_cycle",1])>79,,1] = NA
+#  sim_out_filter[,,1] <- sim_out[,,1]
+ # sim_out_filter[as.numeric(sim_out[,"Age_cycle",1])<40 | as.numeric(sim_out[,"Age_cycle",1])>79,,1] = NA
   
   for (t in 1:n.cycle) {
     #Non-time varying data inputs: carry it over from the baseline data
@@ -838,7 +838,7 @@ run_sim <- function(s) {
     if (sum(round(rowSums(p.transition),3)!=1) != 0) {
       stop("Transition probabilities do not add to 1")
     }
-    set.seed(seed)
+   # set.seed(seed)
     # Transition to the next health state 
     sim_out[,"state",t+1] <- apply(p.transition, 1, function(x) sample(name.health.state, 1, prob = x))
     
