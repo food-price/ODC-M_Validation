@@ -74,8 +74,6 @@ Multi_yr_Risk_to_annual_prob <- function(time, risk) {
 
 # 0.5 Creating Working Directory 
 setwd()
-#setwd("/cluster/tufts/kimlab/lwang18/ODC-M_Validation")
-#setwd("C:\Users\lwang18\Documents\GitHub\ODC-M_Validation")
 
 # Source other scripts
 source("30 Main Model/1a - Diabetes_risk_prediction_FHS (categorical points).R")
@@ -499,8 +497,8 @@ run_sim <- function(s) {
   sim_out[,"effect_disc",1] <- data_for_analysis$HRQOL_scores
   
   # Filter only ages 40-79 for final analysis (set rest to NA)
-  sim_out_filter[,,1] <- sim_out[,,1]
-  sim_out_filter[as.numeric(sim_out[,"Age_cycle",1])<40 | as.numeric(sim_out[,"Age_cycle",1])>79,,1] = NA
+#  sim_out_filter[,,1] <- sim_out[,,1]
+ # sim_out_filter[as.numeric(sim_out[,"Age_cycle",1])<40 | as.numeric(sim_out[,"Age_cycle",1])>79,,1] = NA
   
   for (t in 1:n.cycle) {
     #Non-time varying data inputs: carry it over from the baseline data
@@ -823,7 +821,7 @@ run_sim <- function(s) {
     if (sum(round(rowSums(p.transition),3)!=1) != 0) {
       stop("Transition probabilities do not add to 1")
     }
-    set.seed(seed)
+  #  set.seed(seed)
     # Transition to the next health state 
     sim_out[,"state",t+1] <- apply(p.transition, 1, function(x) sample(name.health.state, 1, prob = x))
     
@@ -860,7 +858,7 @@ run_sim <- function(s) {
     # Discount effects and costs
     sim_out[,"effect_disc",t+1] <- as.numeric(sim_out[,"HRQOL_scores",t+1])/((1+beta_QALY)^(t-1))
     sim_out[,"cost_disc",t+1] <- as.numeric(sim_out[,"HCE_predict",t+1])/((1+beta_cost)^(t-1))
-    
+ 
     # Filter only ages 40-79 for final analysis (set rest to NA)
    # sim_out_filter[,,t+1] <- sim_out[,,t+1]
    # sim_out_filter[as.numeric(sim_out[,"Age_cycle",t+1])<40 | as.numeric(sim_out[,"Age_cycle",t+1])>79,,t+1] = NA
